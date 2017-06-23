@@ -5,12 +5,18 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "webpack"
+    "build": "webpack",
+    "watch": "webpack --progress --watch",
+    "start": "webpack-dev-server --open"
   },
   "author": "Ahmed Şeref GÜNEYSU <serefguneysuz@gmail.com> (https://guneysu.tumblr.com)",
   "license": "ISC",
   "devDependencies": {
-    "webpack": "^3.0.0"
+    "css-loader": "^0.28.4",
+    "serve": "^5.2.4",
+    "style-loader": "^0.18.2",
+    "webpack": "^3.0.0",
+    "webpack-dev-server": "^2.5.0"
   },
   "dependencies": {
     "lodash": "^4.17.4"
