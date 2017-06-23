@@ -5,7 +5,10 @@ module.exports = {
   entry: './src/index.js',
 
   plugins: [
-    new webpack.HotModuleReplacementPlugin() // Enable HMR
+    new webpack.HotModuleReplacementPlugin(), // Enable HMR
+        new webpack.optimize.UglifyJsPlugin({
+      sourceMap: options.devtool && (options.devtool.indexOf("sourcemap") >= 0 || options.devtool.indexOf("source-map") >= 0)
+    })
   ],
 
   output: {
@@ -14,15 +17,15 @@ module.exports = {
   },
 
   module: {
-  	rules: [
-  		{
-  			test: /\.css$/,
-  			use: [
-  				'style-loader',
-  				'css-loader'
-  			]
-  		}
-  	]
+    rules: [
+        {
+            test: /\.css$/,
+            use: [
+                'style-loader',
+                'css-loader'
+            ]
+        }
+    ]
   },
 
   devServer: {
