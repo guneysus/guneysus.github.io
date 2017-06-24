@@ -2,5 +2,5 @@ import './sass/styles.sass'
 
 
 (function () {
-	console.log(new Date);
+	console.debug(new Date);
 })();

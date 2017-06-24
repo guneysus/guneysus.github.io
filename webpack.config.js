@@ -31,6 +31,8 @@ module.exports = {
    plugins: [
        new ManifestPlugin(),
        new HtmlWebpackPlugin({
+        filename: 'index.html',
+        template: 'src/index.html',
         inject: 'body',
         title: '/home/ahmed',
         minify: { // https://github.com/kangax/html-minifier#options-quick-reference
@@ -43,9 +45,9 @@ module.exports = {
           allChunks: true,
         }),
        new webpack.HotModuleReplacementPlugin(),
-       new UglifyJSPlugin({
-        sourceMap: true,
-       }),
+       // new UglifyJSPlugin({
+       //  sourceMap: true,
+       // }),
       new webpack.SourceMapDevToolPlugin({
         filename: '[name].js.map',
         exclude: ['vendor.js']
