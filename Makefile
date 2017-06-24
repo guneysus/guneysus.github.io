@@ -1,12 +1,15 @@
 default: watch
 
-build:
+clean:
+	@rm dist/* -rf
+
+build: clean
 	@npm run build
 
-watch:
+watch: clean
 	@npm run watch	
 
-serve:
+serve: clean
 	@npm run serve
 
-.PHONY: default build watch start
+.PHONY: default clean build watch start

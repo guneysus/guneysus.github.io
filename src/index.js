@@ -1,1 +1,6 @@
-import './sass/styles.sass';
+import './sass/styles.sass'
+
+
+(function () {
+	console.log(new Date);
+})();

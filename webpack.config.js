@@ -1,9 +1,12 @@
 const path = require('path');
 const webpack = require('webpack');
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const ManifestPlugin = require('webpack-manifest-plugin');
+const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
 
 module.exports = {
-   devtool: "inline-source-map",
+   devtool: "source-map", // "eval", "source-map"
    
    entry: ['./src/index.js', './src/sass/styles.sass' ],
    
@@ -26,21 +29,37 @@ module.exports = {
    },
 
    plugins: [
-       new webpack.HotModuleReplacementPlugin(),
+       new ManifestPlugin(),
+       new HtmlWebpackPlugin({
+        inject: 'body',
+        title: '/home/ahmed',
+        minify: { // https://github.com/kangax/html-minifier#options-quick-reference
+          collapseWhitespace: true,
+          removeComments: true,
+        },
+       }),
         new ExtractTextPlugin({
-          filename: 'styles.css',
+          filename: 'styles.[hash].css',
           allChunks: true,
         }),
+       new webpack.HotModuleReplacementPlugin(),
+       new UglifyJSPlugin({
+        sourceMap: true,
+       }),
+      new webpack.SourceMapDevToolPlugin({
+        filename: '[name].js.map',
+        exclude: ['vendor.js']
+      })
   ],
 
   output: {
-    filename: '[name].js',
+    filename: '[name].[hash].js',
     path: path.resolve(__dirname, 'dist')
   },
 
   devServer: {
     hot: true, // Tell the dev-server we're using HMR
-    contentBase: path.resolve(__dirname),
+    contentBase: path.resolve(__dirname, '/dist'),
     publicPath: '/'
   }     
 }
