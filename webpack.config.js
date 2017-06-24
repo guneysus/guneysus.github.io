@@ -1,36 +1,22 @@
-const path = require('path');
-const webpack = require('webpack');
+var ExtractTextPlugin = require('extract-text-webpack-plugin');
+var path = require('path');
 
 module.exports = {
-  entry: './src/index.js',
-
-  plugins: [
-    new webpack.HotModuleReplacementPlugin(), // Enable HMR
-        new webpack.optimize.UglifyJsPlugin({
-      sourceMap: options.devtool && (options.devtool.indexOf("sourcemap") >= 0 || options.devtool.indexOf("source-map") >= 0)
-    })
-  ],
-
+    entry: './src/index.js',
+   module: {
+       loaders: [
+       {
+           test: /\.css/,
+           loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' })
+      }
+       ],
+   },
+   plugins: [
+       // output extracted CSS to a file
+       new ExtractTextPlugin('[name].[chunkhash].css')
+   ],
   output: {
-    filename: 'bundle.js',
+    filename: '[name].js',
     path: path.resolve(__dirname, 'dist')
-  },
-
-  module: {
-    rules: [
-        {
-            test: /\.css$/,
-            use: [
-                'style-loader',
-                'css-loader'
-            ]
-        }
-    ]
-  },
-
-  devServer: {
-    hot: true, // Tell the dev-server we're using HMR
-    contentBase: path.resolve(__dirname, 'dist'),
-    publicPath: '/'
-  }  
-};
+     },   
+}
