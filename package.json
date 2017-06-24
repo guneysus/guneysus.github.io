@@ -12,9 +12,7 @@
   "author": "Ahmed Şeref GÜNEYSU <serefguneysuz@gmail.com> (https://guneysu.tumblr.com)",
   "license": "ISC",
   "dependencies": {
-    "bulma": "^0.4.2",
-    "lodash": "^4.17.4",
-    "wingcss": "^1.0.0-beta"
+    "bulma": "^0.4.2"
   },
   "devDependencies": {
     "babel-core": "^6.25.0",

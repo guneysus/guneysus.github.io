@@ -1,17 +1,21 @@
 @import './variables.sass'
-// @import '../../node_modules/bulma/sass/utilities/_all.sass'
-// @import '../../node_modules/bulma/sass/base/_all.sass'
-// @import '../../node_modules/bulma/sass/elements/_all.sass'
-// @import '../../node_modules/bulma/sass/components/_all.sass'
-// @import '../../node_modules/bulma/sass/grid/_all.sass'
-// @import '../../node_modules/bulma/sass/layout/_all.sass'
+// @import '../../node_modules/bulma/bulma.sass'
 
-@import '../../node_modules/bulma/bulma.sass'
+@import '../../node_modules/bulma/sass/utilities/initial-variables'
+@import '../../node_modules/bulma/sass/utilities/functions'
+@import '../../node_modules/bulma/sass/utilities/initial-variables'
+@import '../../node_modules/bulma/sass/utilities/derived-variables'
+@import '../../node_modules/bulma/sass/utilities/mixins'
+
+@import '../../node_modules/bulma/sass/base/minireset'
+@import '../../node_modules/bulma/sass/base/generic'
+@import '../../node_modules/bulma/sass/base/helpers'
+
+@import '../../node_modules/bulma/sass/grid/_all'
+
+@import '../../node_modules/bulma/sass/layout/section'
+@import '../../node_modules/bulma/sass/layout/footer'
+
+@import url('https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css')
 
 @import './debug.sass';
-
-$font-stack:    Helvetica, sans-serif
-$primary-color: #333
-
-.hello
-	color: green;
