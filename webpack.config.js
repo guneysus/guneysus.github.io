@@ -1,14 +1,12 @@
 const path = require('path');
-
+const webpack = require('webpack');
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
 
-const extractSass = new ExtractTextPlugin({
-    filename: "[name].[contenthash].css"
-    // disable: process.env.NODE_ENV === "development"
-});
-
 module.exports = {
-   entry: ['./src/index.js', './src/sass/main.sass'],
+   devtool: "inline-source-map",
+   
+   entry: ['./src/index.js', './src/sass/styles.sass' ],
+   
    module: {
     rules: [
       /*
@@ -16,27 +14,33 @@ module.exports = {
       */
       { // regular css files
         test: /\.css$/,
-        loader: ExtractTextPlugin.extract({
-          loader: 'css-loader?importLoaders=1',
+        use: ExtractTextPlugin.extract({
+          use: 'css-loader?importLoaders=1',
         }),
       },
       { // sass / scss loader for webpack
         test: /\.(sass|scss)$/,
-        loader: ExtractTextPlugin.extract(['css-loader', 'sass-loader'])
+        use: ExtractTextPlugin.extract(['css-loader', 'sass-loader'])
       }
     ]
    },
+
    plugins: [
-       // output extracted CSS to a file
-       // new ExtractTextPlugin('[name].[chunkhash].css'),
-       // new ExtractTextPlugin('[name].css'),
-        new ExtractTextPlugin({ // define where to save the file
-          filename: '[name].css',
+       new webpack.HotModuleReplacementPlugin(),
+        new ExtractTextPlugin({
+          filename: 'styles.css',
           allChunks: true,
         }),
-   ],
+  ],
+
   output: {
     filename: '[name].js',
     path: path.resolve(__dirname, 'dist')
-     },   
+  },
+
+  devServer: {
+    hot: true, // Tell the dev-server we're using HMR
+    contentBase: path.resolve(__dirname),
+    publicPath: '/'
+  }     
 }

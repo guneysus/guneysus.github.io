@@ -5,12 +5,16 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "webpack --optimize-minimize"
+    "build": "webpack",
+    "watch": "webpack --watch",
+    "serve": "webpack-dev-server"
   },
   "author": "Ahmed Şeref GÜNEYSU <serefguneysuz@gmail.com> (https://guneysu.tumblr.com)",
   "license": "ISC",
   "dependencies": {
-    "lodash": "^4.17.4"
+    "bulma": "^0.4.2",
+    "lodash": "^4.17.4",
+    "wingcss": "^1.0.0-beta"
   },
   "devDependencies": {
     "babel-core": "^6.25.0",

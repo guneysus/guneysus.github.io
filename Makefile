@@ -1,4 +1,4 @@
-default: build
+default: watch
 
 build:
 	@npm run build
@@ -6,7 +6,7 @@ build:
 watch:
 	@npm run watch	
 
-start:
-	@npm run start
+serve:
+	@npm run serve
 
 .PHONY: default build watch start
