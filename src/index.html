@@ -38,8 +38,35 @@
         </div>
       </div>
     </nav>
+
+    <!--
+
+    section.section>.container>.tile.is-ancestor
+
+    .tile.is-parent>article.tile.is-child.is-12.green.post>a.post__category[href=#]{Category}+h2.post__title{Blog#1}+div.post__content{Lorem Ipsum dolor sit amet.}+a.post__permalink[href=#]{Read more...}
+
+    section.section>.container>.tile.is-ancestor>.tile.is-parent>article.tile.is-child.is-12.green.post>a.post__category[href=#]{Category}+h2.post__title{Blog#1}+div.post__content{Lorem Ipsum dolor sit amet.}+a.post__permalink[href=#]{Read more...}
+
+
+     -->
     
     <section class="section">
+
+<!--         .container>.tile.is-ancestor>.tile.is-parent>article.tile.is-child.is-12.green.post>a.post__category[href=#]{Category}+h2.post__title{Blog#1}+div.post__content{Lorem Ipsum dolor sit amet.}+a.post__permalink[href=#]{Read more...}
+ -->
+
+        <div class="container">
+          <div class="tile is-ancestor">
+            <div class="tile is-parent">
+              <article class="tile is-child is-12 green post">
+                <a href="#" class="post__category">Category</a>
+                <h2 class="post__title">Blog#1</h2>
+                <div class="post__content">Lorem Ipsum dolor sit amet.</div>
+                <a href="#" class="post__permalink">Read more...</a>
+              </article>
+            </div>
+          </div>
+        </div>
       <div class="container">
         <!--
         .tile.is-ancestor>.tile.is-parent>article.tile.is-child.green.post>a.post__category[href=#]{Category}+h2.post__title{Blog #1}+div.post__content{Lorem ipsum dolor sit amet, consectetur adipisicing elit. Hic sint, obcaecati ab dolore voluptatum, earum ipsa odio impedit magni. Itaque quasi at eaque culpa, incidunt illum quis. Labore, et dicta.}+a.post__permalink[href=#]{Read more...}

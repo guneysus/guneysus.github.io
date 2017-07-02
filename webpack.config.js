@@ -47,11 +47,11 @@ module.exports = {
        new webpack.HotModuleReplacementPlugin(),
        // new UglifyJSPlugin({
        //  sourceMap: true,
-       // }),
+       // }),  
       new webpack.SourceMapDevToolPlugin({
         filename: '[name].js.map',
         exclude: ['vendor.js']
-      })
+      })    
   ],
 
   output: {
