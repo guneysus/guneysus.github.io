@@ -56,7 +56,8 @@ module.exports = {
 
   output: {
     filename: '[name].[hash].js',
-    path: path.resolve(__dirname, 'dist')
+    // path: path.resolve(__dirname, 'dist')
+    path: path.resolve('/home/ahmed/workspace/web/guneysu.xyz/blog.guneysu.xyz/backend/blog/static')
   },
 
   devServer: {
