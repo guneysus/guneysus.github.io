@@ -27,12 +27,6 @@ deploy:
     on: develop
     skip_cleanup: true
     project: ./dist/
-    domain: guneysus-develop.surge.sh  
-
-  - provider: surge
-    on: master
-    skip_cleanup: true
-    project: ./dist/
     domain: guneysus.surge.sh
 
   - provider: releases
