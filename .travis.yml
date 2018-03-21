@@ -22,8 +22,14 @@ before_deploy:
   - npm run build
 
 deploy:
-  on: develop
-  skip_cleanup: true
-  provider: surge
-  project: ./dist/
-  domain: guneysu-portal.surge.sh  
+  - provider: surge
+    on: develop
+    skip_cleanup: true
+    project: ./dist/
+    domain: guneysu-portal.surge.sh  
+
+  - provider: surge
+    on: master
+    skip_cleanup: true
+    project: ./dist/
+    domain: guneysus.surge.sh  
