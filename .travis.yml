@@ -20,6 +20,7 @@ notifications:
 
 before_deploy:
   - npm run build
+  - tar caf dist.tar.gz dist/
 
 deploy:
   - provider: surge
@@ -32,4 +33,11 @@ deploy:
     on: master
     skip_cleanup: true
     project: ./dist/
-    domain: guneysus.surge.sh  
+    domain: guneysus.surge.sh
+
+  - provider: releases
+    skip_cleanup: true
+    api_key: $GITHUB_TOKEN
+    file: dist.tar.gz
+    on: develop
+
