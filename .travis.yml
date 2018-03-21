@@ -9,7 +9,6 @@ node_js:
   - "8"
 
 script:
-  - npm run build
   - npm test
 
 branches:
@@ -18,3 +17,13 @@ branches:
 
 notifications:
   slack: guneysu:g4dUCQCfxQ4tHZziwDMOlU7k
+
+before_deploy:
+  - npm run build
+
+deploy:
+  on: develop
+  skip_cleanup: true
+  provider: surge
+  project: ./dist/
+  domain: guneysu.portal.surge.sh  
