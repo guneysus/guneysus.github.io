@@ -39,6 +39,7 @@ module.exports = {
           collapseWhitespace: true,
           removeComments: true,
         },
+        // favicon: 'src/images/favicon.ico'
        }),
         new ExtractTextPlugin({
           filename: 'styles.[hash].css',
@@ -51,7 +52,7 @@ module.exports = {
       new webpack.SourceMapDevToolPlugin({
         filename: '[name].js.map',
         exclude: ['vendor.js']
-      })    
+      }),
   ],
 
   output: {

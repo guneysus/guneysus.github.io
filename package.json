@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack --optimize-minimize --output-path /home/ahmed/workspace/web/guneysu.xyz/blog.guneysu.xyz/backend/blog/static",
     "watch": "webpack --watch",
-    "serve": "webpack-dev-server"
+    "dev": "webpack-dev-server"
   },
   "author": "Ahmed Şeref GÜNEYSU <serefguneysuz@gmail.com> (https://guneysu.tumblr.com)",
   "license": "ISC",
