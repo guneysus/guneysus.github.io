@@ -1,0 +1,20 @@
+language: node_js
+
+cache:
+  directories:
+    - "node_modules"
+  yarn: true
+
+node_js:
+  - "8"
+
+script:
+  - npm run build
+  - npm test
+
+branches:
+  only:
+  - develop
+
+notifications:
+  slack: guneysu:g4dUCQCfxQ4tHZziwDMOlU7k
