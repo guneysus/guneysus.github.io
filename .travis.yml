@@ -26,4 +26,4 @@ deploy:
   skip_cleanup: true
   provider: surge
   project: ./dist/
-  domain: guneysu.portal.surge.sh  
+  domain: guneysu-portal.surge.sh  
