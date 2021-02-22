@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="apple-touch-icon" type="image/png"
+        href="https://cpwebassets.codepen.io/assets/favicon/apple-touch-icon-5ae1a0698dcc2402e9712f7d01ed509a57814f994c660df9f7a952f3060705ee.png" />
+    <meta name="apple-mobile-web-app-title" content="CodePen">
+    <link rel="shortcut icon" type="image/x-icon"
+        href="https://cpwebassets.codepen.io/assets/favicon/favicon-aec34940fbc1a6e787974dcd360f2c6b63348d4b1f4e06c77743096d55480f33.ico" />
+    <link rel="mask-icon" type=""
+        href="https://cpwebassets.codepen.io/assets/favicon/logo-pin-8f3771b1072e3c38bd662872f6b673a722f4b3ca2421637d5596661b4e2132cc.svg"
+        color="#111" />
+    <title>CodePen - exif read</title>
+
+</head>
+
+<body translate="no">
+    <input type="file" accept="image/*" name="photo" />
+    <button onclick="getLocation()">get location</button>
+    <p name="exif-data">
+    </p>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js'></script>
+    <script id="rendered-js">
+        function getLocation(evt) {
+            var img = document.querySelector("[name=photo]");
+            var file = img.files[0];
+
+            EXIF.getData(file, function () {
+                debugger;
+                var lat = EXIF.getTag(this, "GPSLatitude");
+                var lon = EXIF.getTag(this, "GPSLongitude");
+                var date = EXIF.getTag(this, "GPSDateStamp");
+                var time = EXIF.getTag(this, "GPSTimeStamp");
+                var exifDataElem = document.querySelector("[name=exif-data]");
+                exifDataElem.innerHTML = `${lat} ${lon} | ${date} ${time}`;
+            });
+        }
+    </script>
+
+</body>
+
+</html>
