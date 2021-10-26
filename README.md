@@ -2,4 +2,4 @@
 
 - [exif](exif/)
 - [har-analyze](har-analyze/)
-- [app.namazvaktim](app.namazvaktim/)
+- [app.namazvaktim](http://app.namazvakti.guneysu.xyz/)
