@@ -1,10 +1,8 @@
 ---
-title: "Decision Making: Picking Object Storage"
-description: ""
-date: 2025-11-08T08:04:44.466Z
-preview: ""
-tags: []
-categories: []
+title: 'Decision Making: Picking Object Storage'
+date: 2025-11-08 08:04:44 Z
+description: ''
+preview: ''
 layout: post
 ---
 
