@@ -1,0 +1,30 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "vscode",
+            "type": "shell",
+            "linux": {
+                "command": "devenv up"
+            },
+            "osx": {
+                "command": "devenv up"
+            },
+            "windows": {
+                "command": "echo 'devenv up is not supported on Windows via this task.'"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "echo": false,
+                "focus": true,
+                "close": false,
+                "panel": "dedicated",
+                "showReuseMessage": false
+            },
+            "runOptions": {
+                "runOn": "folderOpen"
+            }
+        }
+    ]
+}

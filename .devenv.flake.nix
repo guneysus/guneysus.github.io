@@ -12,7 +12,7 @@ devenv_istesting = false;
 devenv_direnvrc_latest_version = 1;
 container_name = null;
 active_profiles = [ ];
-hostname = "MacBook-Pro.local";
+hostname = "192.168.1.105";
 username = "ahmed";
 git_root = "/Users/ahmed/Documents/guneysu.dev/repos/github.com/guneysus/ramblings";
 
@@ -39,7 +39,7 @@ devenv_istesting = false;
 devenv_direnvrc_latest_version = 1;
 container_name = null;
 active_profiles = [ ];
-hostname = "MacBook-Pro.local";
+hostname = "192.168.1.105";
 username = "ahmed";
 git_root = "/Users/ahmed/Documents/guneysu.dev/repos/github.com/guneysus/ramblings";
 
