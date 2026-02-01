@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mac Studio M2 Max (32GB) - LLM Araştırma ve Benchmark Raporu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Chosen Palette: Warm Neutral / Tech Minimalist -->
+    <!-- Primary: Slate-900 (Dark Tech), Background: Slate-50 (Paper-like), Accents: Amber-600 (Focus), Blue-600 (Data) -->
+
+    <!-- Application Structure Plan:
+        1.  **Header & Hero**: Özet donanım bilgisi (M2 Max 32GB) ve ana hedef (LLM Benchmark).
+        2.  **Model Uyumluluk Laboratuvarı (Interactive Memory Lab)**: Kullanıcının en çok merak ettiği "Hangi modeli çalıştırabilirim?" sorusuna yanıt. Dropdown ile model seçimi, progress bar ile 32GB doluluk oranı simülasyonu.
+        3.  **Performans Kıyaslama (Benchmark Dashboard)**: Mac Studio vs PC rakipleri (Token/saniye). Chart.js ile dinamik grafikler.
+        4.  **Cluster/Kümeleme Analizi**: Ölçeklenebilirlik sorusuna yanıt. 2x Mac Studio bağlantısının gecikme ve kapasite etkisini gösteren görsel simülatör.
+        5.  **Rakip Analizi (Market Context)**: Mini PC ve Toplama PC alternatifleri tablosu.
+        6.  **Sonuç ve Öneri**: "Kime Uygun?" özet bölümü.
+    -->
+
+    <!-- Visualization & Content Choices:
+        - Memory Lab: Stacked Bar Chart (Chart.js) yerine, CSS tabanlı dinamik progress bar daha net anlaşılır (RAM doluluğu).
+        - Benchmarks: Horizontal Bar Chart (Chart.js) - Kıyaslama için en iyisi.
+        - Cluster: Canvas çizimi ile topoloji ve veri akışını gösteren interaktif diyagram.
+        - Veri Kaynağı: Genel geçerli M2 Max 30-core GPU benchmarkları (llama.cpp, MLX framework) temel alınmıştır.
+    -->
+
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+
+        .chart-container-small {
+            height: 250px;
+        }
+
+        /* Custom Scrollbar for sleek look */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-amber-100 selection:text-amber-900">
+
+    <!-- Navigation / Header -->
+    <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-8 bg-amber-600 rounded-sm"></div>
+                    <h1 class="text-xl font-bold tracking-tight text-slate-900">Silicon<span class="font-light text-slate-500">Insights</span></h1>
+                </div>
+                <nav class="hidden md:flex space-x-8 text-sm font-medium">
+                    <button onclick="scrollToSection('hero')" class="hover:text-amber-600 transition-colors">Özet</button>
+                    <button onclick="scrollToSection('memory-lab')" class="hover:text-amber-600 transition-colors">Bellek Analizi</button>
+                    <button onclick="scrollToSection('benchmarks')" class="hover:text-amber-600 transition-colors">Hız Testleri</button>
+                    <button onclick="scrollToSection('cluster')" class="hover:text-amber-600 transition-colors">Cluster Yapısı</button>
+                    <button onclick="scrollToSection('alternatives')" class="hover:text-amber-600 transition-colors">Rakipler</button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-16">
+
+        <!-- Hero Section -->
+        <section id="hero" class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div class="space-y-6">
+                <div class="inline-flex items-center px-3 py-1 rounded-full bg-slate-100 text-xs font-medium text-slate-600">
+                    Model: Mac Studio MQH73TU/A
+                </div>
+                <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight">
+                    M2 Max LLM <br>
+                    <span class="gradient-text">Performans Raporu</span>
+                </h1>
+                <p class="text-lg text-slate-600 leading-relaxed">
+                    32GB RAM ve M2 Max çipsetli Mac Studio'nun yapay zeka ve LLM (Büyük Dil Modelleri) potansiyelini analiz ediyoruz. Sınırlar, hızlar ve alternatifler.
+                </p>
+                <div class="grid grid-cols-2 gap-4 pt-4">
+                    <div class="p-4 bg-white rounded-xl shadow-sm border border-slate-200">
+                        <div class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Bellek (RAM)</div>
+                        <div class="text-2xl font-bold text-slate-900">32 GB</div>
+                        <div class="text-xs text-amber-600 font-medium">Unified Memory (400GB/s)</div>
+                    </div>
+                    <div class="p-4 bg-white rounded-xl shadow-sm border border-slate-200">
+                        <div class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">İşlem Gücü</div>
+                        <div class="text-2xl font-bold text-slate-900">30-Core GPU</div>
+                        <div class="text-xs text-green-600 font-medium">16-Core Neural Engine</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Visual: Chip Architecture Concept -->
+            <div class="bg-slate-900 rounded-2xl p-6 shadow-2xl relative overflow-hidden text-white flex flex-col justify-center items-center h-80 lg:h-96">
+                <div class="absolute top-0 left-0 w-full h-full opacity-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-400 via-slate-900 to-slate-900"></div>
+                <div class="text-center z-10 space-y-4">
+                    <div class="text-6xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-400">M2 MAX</div>
+                    <div class="flex justify-center gap-4 text-xs font-mono text-slate-400">
+                        <span class="px-2 py-1 border border-slate-700 rounded">12 CPU</span>
+                        <span class="px-2 py-1 border border-slate-700 rounded bg-amber-900/30 border-amber-800 text-amber-200">30 GPU</span>
+                        <span class="px-2 py-1 border border-slate-700 rounded">32GB RAM</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mt-4 max-w-xs mx-auto">
+                        Unified Memory Architecture (UMA) sayesinde GPU, RAM'in tamamına doğrudan erişebilir. Bu, VRAM limiti olan PC kartlarına göre büyük bir avantajdır.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 1: Memory & Model Lab -->
+        <section id="memory-lab" class="space-y-6 scroll-mt-24">
+            <div class="border-l-4 border-amber-500 pl-4">
+                <h2 class="text-2xl font-bold text-slate-900">Model Uyumluluk Laboratuvarı</h2>
+                <p class="text-slate-600 mt-1">32GB RAM hangi modeller için yeterli? Modelleri seçerek belleği simüle edin.</p>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 lg:p-8">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Controls -->
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">LLM Modeli Seçin</label>
+                            <select id="modelSelect" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-amber-500 focus:border-amber-500 block p-3">
+                                <option value="llama3-8b">Llama 3 (8 Milyar Parametre)</option>
+                                <option value="mistral-7b">Mistral (7 Milyar Parametre)</option>
+                                <option value="gemma-27b">Gemma 2 (27 Milyar Parametre)</option>
+                                <option value="llama3-70b">Llama 3 (70 Milyar Parametre)</option>
+                                <option value="mixtral-8x7b">Mixtral 8x7B (MoE)</option>
+                                <option value="command-r">Command R (35 Milyar Parametre)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Kuantizasyon (Sıkıştırma) Seviyesi</label>
+                            <select id="quantSelect" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-amber-500 focus:border-amber-500 block p-3">
+                                <option value="q4">4-bit (Dengeli - Önerilen)</option>
+                                <option value="q5">5-bit (Yüksek Kalite)</option>
+                                <option value="q8">8-bit (Orijinale Yakın)</option>
+                                <option value="fp16">FP16 (Sıkıştırılmamış)</option>
+                            </select>
+                            <p class="text-xs text-slate-500 mt-2">Kuantizasyon, modelin boyutunu ve RAM kullanımını azaltırken hızını artırır. 4-bit genellikle kalite/performans için en iyi noktadır.</p>
+                        </div>
+                        <div id="modelStatus" class="p-4 rounded-lg bg-slate-50 border border-slate-200 text-sm">
+                            <!-- JS will populate -->
+                        </div>
+                    </div>
+
+                    <!-- Visualizer -->
+                    <div class="lg:col-span-2 flex flex-col justify-center space-y-8">
+                        <div class="relative pt-6">
+                            <div class="flex mb-2 items-center justify-between">
+                                <div>
+                                    <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-amber-600 bg-amber-200">
+                                        RAM Kullanımı
+                                    </span>
+                                </div>
+                                <div class="text-right">
+                                    <span id="usageText" class="text-xs font-semibold inline-block text-amber-600">
+                                        0 GB / 32 GB
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="overflow-hidden h-6 mb-4 text-xs flex rounded-full bg-slate-200 relative">
+                                <!-- OS Reserved -->
+                                <div style="width: 15%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-slate-400" title="macOS Sistem Rezervi (~4-5GB)">
+                                    <span class="px-2">macOS</span>
+                                </div>
+                                <!-- Model Usage -->
+                                <div id="ramBar" style="width: 0%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-amber-500 transition-all duration-500">
+                                    <span class="px-2" id="ramBarLabel">Model</span>
+                                </div>
+                                <!-- Threshold Marker -->
+                                <div class="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10" style="left: 90%" title="Swap Başlangıcı (Performans Düşer)"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-slate-400 font-mono">
+                                <span>0 GB</span>
+                                <span>16 GB</span>
+                                <span>32 GB (Limit)</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                <h4 class="text-sm font-bold text-slate-700">Tahmini Hız (Token/sn)</h4>
+                                <div id="speedEstimate" class="text-3xl font-bold text-slate-900 mt-1">--</div>
+                                <p class="text-xs text-slate-500 mt-1">Saniyede üretilen kelime parçacığı.</p>
+                            </div>
+                            <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                <h4 class="text-sm font-bold text-slate-700">Çalışma Durumu</h4>
+                                <div id="feasibilityStatus" class="text-lg font-medium text-slate-900 mt-1">--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: Benchmarks -->
+        <section id="benchmarks" class="space-y-6 scroll-mt-24">
+            <div class="border-l-4 border-blue-600 pl-4">
+                <h2 class="text-2xl font-bold text-slate-900">Performans Karşılaştırması</h2>
+                <p class="text-slate-600 mt-1">M2 Max (30-Core) GPU, yaygın LLM modellerinde nasıl performans veriyor?</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Main Benchmark Chart -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4">Token Üretim Hızı (Llama 3 8B @ Q4)</h3>
+                    <div class="chart-container">
+                        <canvas id="benchmarkChart"></canvas>
+                    </div>
+                    <p class="text-sm text-slate-500 mt-4 italic">
+                        * Değerler ortalamadır. "t/s" (token/saniye) ne kadar yüksekse o kadar iyidir. İnsan okuma hızı ~5-10 t/s civarıdır.
+                    </p>
+                </div>
+
+                <!-- Insight Text -->
+                <div class="space-y-6">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 h-full flex flex-col justify-center">
+                        <h3 class="text-lg font-bold text-slate-800 mb-3">Analiz Notları</h3>
+                        <ul class="space-y-4">
+                            <li class="flex items-start">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold mt-0.5">✓</span>
+                                <div class="ml-3">
+                                    <p class="text-sm text-slate-700 font-medium">Küçük Modellerde Canavar</p>
+                                    <p class="text-xs text-slate-500 mt-1">7B ve 13B (veya Llama 3 8B) boyutundaki modellerde M2 Max inanılmaz hızlıdır (50-70 t/s). Bu, gerçek zamanlı sohbetten çok daha hızlıdır.</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xs font-bold mt-0.5">!</span>
+                                <div class="ml-3">
+                                    <p class="text-sm text-slate-700 font-medium">Bant Genişliği Avantajı</p>
+                                    <p class="text-xs text-slate-500 mt-1">400GB/s bellek bant genişliği, özellikle büyük modeller yüklenirken PC rakiplerine (DDR5 ~50-60GB/s) göre büyük avantaj sağlar. Modeli belleğe yükleme ve ilk tepki süresi çok kısadır.</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold mt-0.5">i</span>
+                                <div class="ml-3">
+                                    <p class="text-sm text-slate-700 font-medium">32GB Darboğazı</p>
+                                    <p class="text-xs text-slate-500 mt-1">M2 Max çipi çok güçlü olsa da, 32GB RAM kapasitesi, 70B gibi devasa modellerde sizi sınırlar. Çip işleyebilir, ancak RAM yetmediği için SSD'ye (Swap) taşma yapar ve hız 60 t/s'den 1-2 t/s'ye düşer.</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: Clustering -->
+        <section id="cluster" class="space-y-6 scroll-mt-24">
+            <div class="border-l-4 border-purple-600 pl-4">
+                <h2 class="text-2xl font-bold text-slate-900">Cluster & Ölçeklenebilirlik</h2>
+                <p class="text-slate-600 mt-1">Birden fazla Mac Studio'yu bağlayarak ne elde edersiniz?</p>
+            </div>
+
+            <div class="bg-slate-900 rounded-2xl p-8 text-white shadow-xl">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div>
+                        <h3 class="text-xl font-bold text-white mb-4">Cluster Simülasyonu</h3>
+                        <p class="text-slate-400 text-sm mb-6">
+                            Apple Silicon cihazlar <span class="text-amber-400 font-mono">llama.cpp (MPI)</span> veya <span class="text-amber-400 font-mono">MLX</span> kütüphaneleri ile ağ üzerinden bağlanabilir.
+                        </p>
+
+                        <!-- Interactive Toggle -->
+                        <div class="flex items-center space-x-4 mb-8 bg-slate-800 p-2 rounded-lg inline-flex">
+                            <button id="singleNodeBtn" class="px-4 py-2 rounded bg-amber-600 text-white text-sm font-medium transition-all">Tek Cihaz (32GB)</button>
+                            <button id="clusterNodeBtn" class="px-4 py-2 rounded hover:bg-slate-700 text-slate-300 text-sm font-medium transition-all">2x Cluster (64GB)</button>
+                        </div>
+
+                        <div id="clusterStats" class="space-y-4 transition-all duration-300">
+                            <!-- Stats updated by JS -->
+                            <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                                <span class="text-slate-400">Toplam VRAM Kapasitesi</span>
+                                <span id="clusterVram" class="text-2xl font-bold text-white">32 GB</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                                <span class="text-slate-400">Çalıştırılabilir En Büyük Model</span>
+                                <span id="clusterModel" class="text-lg font-medium text-amber-400">Mixtral 8x7B (Q4)</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                                <span class="text-slate-400">Tahmini Hız (70B Model)</span>
+                                <span id="clusterSpeed" class="text-lg font-medium text-red-400">Çalışmaz (Swap)</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-400">Ağ Gecikmesi Etkisi</span>
+                                <span id="clusterLatency" class="text-sm font-mono text-green-400">Yok (Local)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="relative flex items-center justify-center bg-slate-800/50 rounded-xl p-4">
+                        <canvas id="clusterVisual"></canvas>
+                        <div class="absolute bottom-4 text-center w-full px-4">
+                            <p id="clusterDesc" class="text-xs text-slate-400">
+                                Tek cihaz: Veri transferi 400GB/s bellek içinde gerçekleşir. En hızlı yöntemdir ancak bellek sınırlıdır.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="text-amber-600 font-bold mb-2">Nasıl Yapılır?</div>
+                    <p class="text-sm text-slate-600">Ethernet (tercihen 10GbE) üzerinden bağlanarak. `llama.cpp` MPI build'i kullanılır. Katmanlar (layers) cihazlara bölünür.</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="text-amber-600 font-bold mb-2">Ne İşe Yarar?</div>
+                    <p class="text-sm text-slate-600">Hız artırmaz, <strong>Kapasite Artırır</strong>. Tek cihazda sığmayan dev modelleri (örn: Llama-3-70B Q4) çalıştırmanızı sağlar.</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="text-amber-600 font-bold mb-2">Dezavantajı</div>
+                    <p class="text-sm text-slate-600">Ağ gecikmesi (Latency). İki cihaz arası veri transferi, RAM hızından çok daha yavaştır. Hız düşer ama model çalışır.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: Alternatives Comparison -->
+        <section id="alternatives" class="space-y-6 scroll-mt-24 pb-12">
+             <div class="border-l-4 border-slate-600 pl-4">
+                <h2 class="text-2xl font-bold text-slate-900">Rakip Analizi & Mini PC Alternatifleri</h2>
+                <p class="text-slate-600 mt-1">Aynı bütçe veya form faktöründe başka ne alınabilir?</p>
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+                <table class="w-full text-sm text-left text-slate-600">
+                    <thead class="text-xs text-slate-700 uppercase bg-slate-100">
+                        <tr>
+                            <th scope="col" class="px-6 py-4 rounded-tl-xl">Cihaz Türü</th>
+                            <th scope="col" class="px-6 py-4">Örnek Model</th>
+                            <th scope="col" class="px-6 py-4">VRAM / RAM</th>
+                            <th scope="col" class="px-6 py-4">LLM Avantajı</th>
+                            <th scope="col" class="px-6 py-4 rounded-tr-xl">Dezavantajı</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="bg-white border-b hover:bg-slate-50">
+                            <td class="px-6 py-4 font-bold text-amber-700">Bu Cihaz</td>
+                            <td class="px-6 py-4 font-medium text-slate-900">Mac Studio M2 Max</td>
+                            <td class="px-6 py-4">32GB (Unified)</td>
+                            <td class="px-6 py-4">Yüksek bellek bant genişliği, kolay kurulum, sessiz.</td>
+                            <td class="px-6 py-4">VRAM artırılamaz. CUDA desteği yok (Metal kullanılır).</td>
+                        </tr>
+                        <tr class="bg-slate-50 border-b hover:bg-slate-100">
+                            <td class="px-6 py-4 font-bold text-slate-700">High-End Mini PC</td>
+                            <td class="px-6 py-4">Intel NUC 13 / Minisforum (RTX 4070 Mobile)</td>
+                            <td class="px-6 py-4">8GB - 12GB VRAM</td>
+                            <td class="px-6 py-4">Tam CUDA desteği, Windows/Linux esnekliği.</td>
+                            <td class="px-6 py-4 text-red-600"><strong>Düşük VRAM.</strong> 13B üzeri modelleri GPU'da tam çalıştıramaz. Yavaş sistem RAM'ine düşer.</td>
+                        </tr>
+                        <tr class="bg-white border-b hover:bg-slate-50">
+                            <td class="px-6 py-4 font-bold text-slate-700">SFF Custom PC</td>
+                            <td class="px-6 py-4">ITX Kasa + RTX 3090 (2. El)</td>
+                            <td class="px-6 py-4">24GB VRAM</td>
+                            <td class="px-6 py-4 text-green-600"><strong>Fiyat/Performans Kralı.</strong> 24GB çok hızlı VRAM + CUDA.</td>
+                            <td class="px-6 py-4">Daha büyük kasa, yüksek güç tüketimi, parça toplama zahmeti.</td>
+                        </tr>
+                        <tr class="bg-slate-50 hover:bg-slate-100">
+                            <td class="px-6 py-4 font-bold text-slate-700">Workstation PC</td>
+                            <td class="px-6 py-4">Dual RTX 3060 (12GB x2)</td>
+                            <td class="px-6 py-4">24GB Total VRAM</td>
+                            <td class="px-6 py-4">Ucuz yollu 24GB VRAM elde etme yöntemi.</td>
+                            <td class="px-6 py-4">Yazılım ayarı zordur (model split). Bant genişliği düşüktür.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-6 mt-8">
+                <h3 class="text-lg font-bold text-amber-800 mb-2">Özet Değerlendirme</h3>
+                <p class="text-amber-900 text-sm leading-relaxed">
+                    Eğer amacınız <strong>7B ile 34B arası modelleri</strong> sessiz, kompakt ve verimli bir ortamda çalıştırmaksa, <strong>Mac Studio M2 Max (32GB)</strong> rakipsizdir. Piyasada 32GB VRAM sunan "hazır" bir ekran kartı yoktur (RTX 4090 bile 24GB'dır, A6000 gibi profesyonel kartlar çok pahalıdır). Ancak, 70B modelleri çalıştırmak istiyorsanız bu cihazın belleği yetersiz kalacaktır; 64GB veya 96GB versiyonlarına bakmanız gerekir.
+                </p>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 mt-12 py-8">
+        <div class="max-w-7xl mx-auto px-4 text-center text-slate-500 text-sm">
+            <p>&copy; 2024 AI Hardware Insights. Veriler araştırma amaçlı simülasyonlardır.</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- Navigation Scroll ---
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // --- Data Definitions ---
+
+        // Model Data: Estimated size in GB for different quantizations
+        // Base sizes roughly: Params * bits / 8
+        const modelData = {
+            "llama3-8b": { name: "Llama 3 (8B)", q4: 5.5, q5: 6.5, q8: 9.0, fp16: 16.0, speed: 65, feasible: true },
+            "mistral-7b": { name: "Mistral 7B", q4: 4.8, q5: 5.8, q8: 8.0, fp16: 15.0, speed: 70, feasible: true },
+            "gemma-27b": { name: "Gemma 2 (27B)", q4: 17.0, q5: 20.0, q8: 29.0, fp16: 54.0, speed: 25, feasible: "warning" },
+            "mixtral-8x7b": { name: "Mixtral 8x7B", q4: 26.0, q5: 32.0, q8: 48.0, fp16: 90.0, speed: 35, feasible: "warning" }, // MoE is tricky
+            "command-r": { name: "Command R (35B)", q4: 22.0, q5: 26.0, q8: 38.0, fp16: 70.0, speed: 20, feasible: "warning" },
+            "llama3-70b": { name: "Llama 3 (70B)", q4: 42.0, q5: 48.0, q8: 72.0, fp16: 140.0, speed: 1.5, feasible: false }
+        };
+
+        const SYSTEM_RESERVED = 5; // macOS needs ~4-5GB to breathe comfortably
+        const MAX_RAM = 32;
+
+        // --- Memory Lab Logic ---
+        const modelSelect = document.getElementById('modelSelect');
+        const quantSelect = document.getElementById('quantSelect');
+        const ramBar = document.getElementById('ramBar');
+        const ramBarLabel = document.getElementById('ramBarLabel');
+        const usageText = document.getElementById('usageText');
+        const speedEstimate = document.getElementById('speedEstimate');
+        const feasibilityStatus = document.getElementById('feasibilityStatus');
+        const modelStatusDesc = document.getElementById('modelStatus');
+
+        function updateMemoryLab() {
+            const modelKey = modelSelect.value;
+            const quantKey = quantSelect.value;
+            const model = modelData[modelKey];
+            const size = model[quantKey];
+
+            const totalUsed = size + SYSTEM_RESERVED;
+            const usagePercent = Math.min((totalUsed / MAX_RAM) * 100, 100);
+            const modelPercent = Math.min((size / MAX_RAM) * 100, 100);
+
+            // Visual Update
+            ramBar.style.width = `${modelPercent}%`;
+            usageText.innerText = `${totalUsed.toFixed(1)} GB / 32 GB`;
+
+            let statusHTML = "";
+            let speedText = "";
+            let feasText = "";
+            let barColor = "bg-amber-500";
+
+            if (totalUsed < MAX_RAM * 0.9) {
+                // Safe Zone
+                barColor = "bg-green-500";
+                statusHTML = `<span class="text-green-600 font-bold">Mükemmel Uyum.</span> Bu model RAM'e rahatça sığar. İşletim sistemi ve diğer uygulamalar için yer kalır. Yüksek hız beklenir.`;
+                speedText = `~${model.speed} t/s`;
+                feasText = `<span class="text-green-600">Sorunsuz Çalışır</span>`;
+            } else if (totalUsed <= MAX_RAM) {
+                // Warning Zone
+                barColor = "bg-amber-500";
+                statusHTML = `<span class="text-amber-600 font-bold">Sınırda.</span> Model sığıyor ancak RAM neredeyse dolu. Arka plandaki uygulamaları kapatmanız gerekebilir. Hafif yavaşlama olabilir.`;
+                speedText = `~${Math.floor(model.speed * 0.8)} t/s`;
+                feasText = `<span class="text-amber-600">Çalışır (Dikkat)</span>`;
+            } else {
+                // Fail Zone (Swap)
+                barColor = "bg-red-500";
+                statusHTML = `<span class="text-red-600 font-bold">YETERSİZ BELLEK.</span> Toplam kullanım 32GB'ı aşıyor. Sistem SSD Swap kullanmaya başlayacak. Hız inanılmaz düşecektir (1-3 t/s).`;
+                speedText = `< 2 t/s`;
+                feasText = `<span class="text-red-600">Önerilmez (Çok Yavaş)</span>`;
+            }
+
+            ramBar.className = `shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center transition-all duration-500 ${barColor}`;
+            modelStatusDesc.innerHTML = statusHTML;
+            speedEstimate.innerText = speedText;
+            feasibilityStatus.innerHTML = feasText;
+        }
+
+        modelSelect.addEventListener('change', updateMemoryLab);
+        quantSelect.addEventListener('change', updateMemoryLab);
+
+        // Initial call
+        updateMemoryLab();
+
+
+        // --- Benchmark Chart (Chart.js) ---
+        const ctxBench = document.getElementById('benchmarkChart').getContext('2d');
+        const benchmarkChart = new Chart(ctxBench, {
+            type: 'bar',
+            data: {
+                labels: ['Mac Studio M2 Max', 'RTX 4090 PC (24GB)', 'RTX 4060 Laptop', 'M1 Max (32GB)'],
+                datasets: [{
+                    label: 'Llama 3 8B (Q4) Token/Saniye',
+                    data: [65, 140, 45, 50], // Estimated realistic figures
+                    backgroundColor: [
+                        'rgba(245, 158, 11, 0.8)', // Mac M2 Max (Amber)
+                        'rgba(71, 85, 105, 0.6)', // PC
+                        'rgba(71, 85, 105, 0.4)', // Laptop
+                        'rgba(71, 85, 105, 0.4)'  // Old Mac
+                    ],
+                    borderColor: [
+                        'rgba(245, 158, 11, 1)',
+                        'rgba(71, 85, 105, 1)',
+                        'rgba(71, 85, 105, 1)',
+                        'rgba(71, 85, 105, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y', // Horizontal bar
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.raw + ' t/s';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Token / Saniye (Daha yüksek daha iyi)' }
+                    }
+                }
+            }
+        });
+
+
+        // --- Cluster Simulation Logic ---
+        const singleBtn = document.getElementById('singleNodeBtn');
+        const clusterBtn = document.getElementById('clusterNodeBtn');
+        const clusterVisual = document.getElementById('clusterVisual');
+        const cvCtx = clusterVisual.getContext('2d');
+
+        // Set canvas size
+        clusterVisual.width = 300;
+        clusterVisual.height = 150;
+
+        function drawCluster(mode) {
+            cvCtx.clearRect(0, 0, 300, 150);
+
+            // Node 1
+            cvCtx.fillStyle = '#f59e0b'; // Amber
+            cvCtx.beginPath();
+            cvCtx.arc(100, 75, 30, 0, Math.PI * 2);
+            cvCtx.fill();
+            cvCtx.fillStyle = '#fff';
+            cvCtx.font = '10px Arial';
+            cvCtx.textAlign = 'center';
+            cvCtx.fillText("Mac 1", 100, 80);
+
+            if (mode === 'cluster') {
+                // Connection
+                cvCtx.strokeStyle = '#94a3b8';
+                cvCtx.lineWidth = 4;
+                cvCtx.setLineDash([5, 5]);
+                cvCtx.beginPath();
+                cvCtx.moveTo(130, 75);
+                cvCtx.lineTo(200, 75);
+                cvCtx.stroke();
+
+                // Connection Text
+                cvCtx.fillStyle = '#94a3b8';
+                cvCtx.fillText("Ethernet", 165, 65);
+
+                // Node 2
+                cvCtx.fillStyle = '#f59e0b';
+                cvCtx.setLineDash([]);
+                cvCtx.beginPath();
+                cvCtx.arc(230, 75, 30, 0, Math.PI * 2);
+                cvCtx.fill();
+                cvCtx.fillStyle = '#fff';
+                cvCtx.fillText("Mac 2", 230, 80);
+            }
+        }
+
+        const clusterStats = {
+            single: {
+                vram: "32 GB",
+                model: "Mixtral 8x7B (Swap Riski)",
+                speed: "Çalışmaz (Swap)",
+                latency: "Yok (En Hızlı)",
+                desc: "Tek cihaz: Veri transferi 400GB/s bellek içinde gerçekleşir. En hızlı yöntemdir ancak bellek sınırlıdır."
+            },
+            cluster: {
+                vram: "64 GB (Toplam)",
+                model: "Llama 3 70B (Q4)",
+                speed: "~8-10 t/s (Kabul Edilebilir)",
+                latency: "Yüksek (Ethernet)",
+                desc: "Cluster: Bellek ikiye katlanır, 70B modeli sığar! Ancak veri her token için kablo üzerinden geçer, hız tek cihaza göre düşüktür ama model çalışır."
+            }
+        };
+
+        singleBtn.addEventListener('click', () => {
+            updateClusterUI('single');
+            singleBtn.classList.replace('text-slate-300', 'text-white');
+            singleBtn.classList.replace('hover:bg-slate-700', 'bg-amber-600');
+            singleBtn.classList.remove('bg-transparent');
+
+            clusterBtn.classList.replace('bg-amber-600', 'hover:bg-slate-700');
+            clusterBtn.classList.replace('text-white', 'text-slate-300');
+            clusterBtn.classList.add('bg-transparent');
+        });
+
+        clusterBtn.addEventListener('click', () => {
+            updateClusterUI('cluster');
+            clusterBtn.classList.replace('text-slate-300', 'text-white');
+            clusterBtn.classList.replace('hover:bg-slate-700', 'bg-amber-600');
+            clusterBtn.classList.remove('bg-transparent');
+
+            singleBtn.classList.replace('bg-amber-600', 'hover:bg-slate-700');
+            singleBtn.classList.replace('text-white', 'text-slate-300');
+            singleBtn.classList.add('bg-transparent');
+        });
+
+        function updateClusterUI(mode) {
+            const stats = clusterStats[mode];
+            document.getElementById('clusterVram').innerText = stats.vram;
+            document.getElementById('clusterModel').innerText = stats.model;
+            document.getElementById('clusterSpeed').innerText = stats.speed;
+            document.getElementById('clusterLatency').innerText = stats.latency;
+            document.getElementById('clusterDesc').innerText = stats.desc;
+
+            // Color logic for stats
+            if(mode === 'cluster') {
+                document.getElementById('clusterModel').className = "text-lg font-medium text-green-400"; // Good
+                document.getElementById('clusterSpeed').className = "text-lg font-medium text-amber-400"; // Okay
+            } else {
+                document.getElementById('clusterModel').className = "text-lg font-medium text-amber-400"; // Warning
+                document.getElementById('clusterSpeed').className = "text-lg font-medium text-red-400"; // Bad for big models
+            }
+
+            drawCluster(mode);
+        }
+
+        // Initialize Cluster
+        drawCluster('single');
+        updateClusterUI('single'); // Ensure initial text is correct
+
+    </script>
+</body>
+</html>
