@@ -1,16 +1,10 @@
 ---
 title: An Introduction to Swarm Intelligence
-description: ""
-date: 2026-06-04T07:41:31.816Z
-preview: ""
-tags: []
-categories: []
+date: 2026-06-04 07:41:31 Z
+description: ''
+preview: ''
 layout: post
-slug: introduction-swarm-intelligence
 ---
-
-
-
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/jfoAYg-gk98?si=cBUfRJhPnetps_Nm" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
