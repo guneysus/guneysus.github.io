@@ -1,13 +1,10 @@
 ---
 title: Why AI Skills Should Be MCPs, Not Flat Files
-description: ""
-date: 2026-06-16T08:39:51.601Z
-preview: ""
-tags: []
-categories: []
+date: 2026-06-16 08:39:51 Z
+description: ''
+preview: ''
 layout: post
 ---
-
 
 The problem with Skills files are:
 
