@@ -106,8 +106,6 @@ In short, MCP-style skills trade initial complexity for stronger interoperabilit
 
 ## Grok's Answer:
 
-### Prompts
-
 <https://grok.com/c/25a4b8ed-b8ad-40b1-8bff-6e27caec57a1?rid=6f6f18cb-ff55-4a76-8802-7c6e4d165d07>
 
 **Research on Alternatives to Flat Skills.md Files for AI Agents**
