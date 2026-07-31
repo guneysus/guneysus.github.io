@@ -1,10 +1,8 @@
 ---
 title: Protect Your LLM from Contextual Integrity Attacks
-description: ""
-date: 2026-06-25T10:04:57.062Z
-preview: ""
-tags: []
-categories: []
+date: 2026-06-25 10:04:57 Z
+description: ''
+preview: ''
 layout: post
 ---
 
