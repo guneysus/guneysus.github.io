@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Airfoil Flow Visualization (WebGL) — Joukowski Potential Flow</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a2028;
+    --panel-2: #232b36;
+    --fg: #e6edf3;
+    --muted: #8b9aa9;
+    --accent: #4cc9f0;
+    --accent-2: #f72585;
+    --border: #2d3748;
+    --ok: #4ade80;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+  }
+  .app {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+  }
+  header {
+    grid-column: 1 / -1;
+    padding: 10px 18px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px;
+  }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  header .badge {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
+    color: #0a0f15; background: var(--accent);
+    padding: 2px 7px; border-radius: 4px;
+  }
+  .stage {
+    position: relative;
+    background: radial-gradient(ellipse at center, #14202b 0%, #0a0f15 100%);
+    overflow: hidden;
+  }
+  .stage canvas {
+    position: absolute; top: 0; left: 0;
+    display: block; width: 100%; height: 100%;
+  }
+  #gl { z-index: 1; }
+  #overlay { z-index: 2; }
+  .readout {
+    position: absolute; top: 12px; left: 12px;
+    background: rgba(15,20,25,0.75);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0 14px 10px;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    backdrop-filter: blur(6px);
+    min-width: 180px;
+    z-index: 3;
+    user-select: none;
+  }
+  .readout .drag-handle {
+    cursor: grab;
+    padding: 8px 0 6px;
+    margin: 0 -14px 8px;
+    padding-left: 14px; padding-right: 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .readout .drag-handle:active { cursor: grabbing; }
+  .readout .drag-handle::before {
+    content: "⠿"; font-size: 14px; color: var(--accent);
+  }
+  .readout.dragging { opacity: 0.85; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+  .readout .row { display: flex; justify-content: space-between; gap: 12px; }
+  .readout .label { color: var(--muted); }
+  .readout .val { color: var(--accent); font-weight: 600; }
+  .readout .val.lift { color: var(--accent-2); }
+  .readout .val.ok { color: var(--ok); }
+  .sidebar {
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 14px;
+  }
+  .sidebar h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); margin: 14px 0 8px; font-weight: 600;
+  }
+  .sidebar h2:first-child { margin-top: 0; }
+  .ctrl { margin-bottom: 12px; }
+  .ctrl label {
+    display: flex; justify-content: space-between;
+    font-size: 12px; margin-bottom: 4px;
+  }
+  .ctrl label .v { color: var(--accent); font-variant-numeric: tabular-nums; }
+  input[type=range] {
+    width: 100%; accent-color: var(--accent);
+  }
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  button {
+    background: var(--panel-2); color: var(--fg);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 10px; font-size: 12px; cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  button:hover { background: #2d3748; border-color: var(--accent); }
+  button.active { background: var(--accent); color: #0a0f15; border-color: var(--accent); }
+  .toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .note {
+    font-size: 12px; line-height: 1.5; color: var(--muted);
+    background: var(--panel-2); border-radius: 6px; padding: 10px;
+    border-left: 3px solid var(--accent);
+  }
+  .note b { color: var(--fg); }
+  .note .warn { color: #fbbf24; }
+  .eq { margin: 6px 0; }
+  .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .legend {
+    display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted);
+    margin-top: 6px;
+  }
+  .swatch { width: 12px; height: 12px; border-radius: 2px; border: 1px solid #0003; }
+  @media (max-width: 800px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: auto 60vh 1fr; }
+    .sidebar { border-left: none; border-top: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Airfoil Flow Visualization</h1>
+    <span class="badge">WebGL</span>
+    <span class="sub">Joukowski potential flow · GPU pressure field · no stall model</span>
+  </header>
+
+  <div class="stage">
+    <canvas id="gl"></canvas>
+    <canvas id="overlay"></canvas>
+    <div class="readout" id="readout">
+      <div class="drag-handle" id="readout-handle">Values</div>
+      <div class="row"><span class="label">AoA α</span><span class="val" id="r-aoa">0°</span></div>
+      <div class="row"><span class="label">Camber β</span><span class="val" id="r-camber">0°</span></div>
+      <div class="row"><span class="label">Thickness</span><span class="val" id="r-thick">0.15</span></div>
+      <div class="row"><span class="label">Circulation Γ</span><span class="val" id="r-gamma">0</span></div>
+      <div class="row"><span class="label">Lift coeff Cl</span><span class="val lift" id="r-cl">0.00</span></div>
+      <div class="row"><span class="label">Renderer</span><span class="val ok" id="r-render">WebGL</span></div>
+      <div class="row"><span class="label">FPS</span><span class="val" id="r-fps">—</span></div>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <h2>Flow Controls</h2>
+    <div class="ctrl">
+      <label>Angle of attack α <span class="v" id="v-aoa">0°</span></label>
+      <input type="range" id="aoa" min="-10" max="20" step="0.5" value="5" />
+    </div>
+    <div class="ctrl">
+      <label>Camber β <span class="v" id="v-camber">0°</span></label>
+      <input type="range" id="camber" min="-15" max="15" step="0.5" value="0" />
+    </div>
+    <div class="ctrl">
+      <label>Thickness (a/R) <span class="v" id="v-thick">0.15</span></label>
+      <input type="range" id="thick" min="0.05" max="0.30" step="0.01" value="0.15" />
+    </div>
+    <div class="ctrl">
+      <label>Freestream U∞ <span class="v" id="v-uinf">1.0</span></label>
+      <input type="range" id="uinf" min="0.2" max="2.0" step="0.05" value="0.5" />
+    </div>
+    <div class="ctrl">
+      <label>Flow line dash <span class="v" id="v-dash">6</span></label>
+      <input type="range" id="dash" min="2" max="24" step="1" value="6" />
+    </div>
+    <div class="ctrl">
+      <label>Flow line spacing <span class="v" id="v-spacing">26</span></label>
+      <input type="range" id="spacing" min="10" max="60" step="2" value="26" />
+    </div>
+
+    <h2>Presets</h2>
+    <div class="preset-grid">
+      <button data-preset="flat">Flat plate</button>
+      <button data-preset="sym">Symmetric</button>
+      <button data-preset="cambered">Cambered</button>
+      <button data-preset="highlift">High lift</button>
+    </div>
+
+    <h2>Display</h2>
+    <div class="toggles">
+      <button id="t-stream" class="active">Streamlines</button>
+      <button id="t-pressure" class="active">Pressure field</button>
+      <button id="t-cp" class="active">Cp plot</button>
+      <button id="t-anim" class="active">Animate</button>
+    </div>
+    <div class="btn-row" style="margin-top:8px;">
+      <button id="btn-play">⏸ Pause</button>
+      <button id="btn-reset">↺ Reset</button>
+      <button id="btn-view">⤢ Reset view</button>
+    </div>
+
+    <h2>Theory</h2>
+    <div class="note">
+      <b>Joukowski transformation</b> maps a circle in the ζ-plane to an airfoil in the z-plane:
+      <div class="eq" id="eq-jouk"></div>
+      Flow around the circle = uniform stream + doublet + vortex (circulation Γ).
+      The <b>Kutta condition</b> fixes Γ so the rear stagnation point sits at the trailing edge:
+      <div class="eq" id="eq-gamma"></div>
+      Lift follows from <b>Kutta–Joukowski</b>:
+      <div class="eq" id="eq-lift"></div>
+      Surface pressure coefficient:
+      <div class="eq" id="eq-cp"></div>
+      <span class="warn">⚠ Ideal potential flow — no viscosity, no separation, no stall.</span>
+      Real wings stall when the boundary layer separates (typically α ≈ 12–18°).
+      <br><br>
+      <b>WebGL note:</b> the pressure field is evaluated per-pixel in a fragment shader
+      (inverse Joukowski + complex velocity + chain rule), so it is full-resolution and
+      recomputed every frame on the GPU. Streamlines, particles and the Cp plot are drawn
+      on a 2D overlay canvas.
+    </div>
+
+    <h2>Controls</h2>
+    <div class="note">
+      <b>Mouse:</b> drag to pan, wheel to zoom.<br>
+      <b>Touch:</b> one finger pan, pinch to zoom.<br>
+      <b>Keyboard:</b> ←/→ adjust AoA, Space play/pause, R reset view.<br>
+      <b>Panels:</b> drag the <b>Values</b> header or the <b>Cp plot</b> title bar to reposition them.
+    </div>
+
+    <h2>Legend</h2>
+    <div class="legend"><span class="swatch" style="background:#2b6cb0"></span> low pressure (suction)</div>
+    <div class="legend"><span class="swatch" style="background:#c53030"></span> high pressure</div>
+    <div class="legend"><span class="swatch" style="background:#4cc9f0"></span> streamline particles</div>
+    <div class="legend"><span class="swatch" style="background:#ffffff"></span> lift vector L′</div>
+    <div class="legend"><span class="swatch" style="background:#fbbf24"></span> stagnation points</div>
+  </aside>
+</div>
+
+<script>
+"use strict";
+
+// ============================================================
+// State & parameters
+// ============================================================
+const DEFAULTS = {
+  aoa: 5,        // degrees
+  camber: 0,     // degrees (offset angle of cylinder center)
+  thick: 0.15,   // ratio controlling airfoil thickness (offset of cylinder center)
+  uinf: 0.5,     // freestream speed (z-plane units) — slower default
+  dash: 6,       // streamline dash length (px)
+  spacing: 26,   // vertical spacing between streamlines (px)
+  showStream: true,
+  showPressure: true,
+  showCp: true,
+  animate: true,
+  playing: true,
+  panelPos: null,   // {x,y} in CSS px for readout panel
+  cpPos: null,       // {x,y} in CSS px for Cp plot top-left
+};
+
+const STORAGE_KEY = "airfoil-flow-webgl-settings-v1";
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    const picked = {};
+    for (const k of Object.keys(DEFAULTS)) {
+      if (k === "playing") continue;
+      if (saved[k] !== undefined && saved[k] !== null) picked[k] = saved[k];
+    }
+    return picked;
+  } catch (e) { return null; }
+}
+
+function saveSettings() {
+  try {
+    const toSave = {};
+    for (const k of Object.keys(DEFAULTS)) {
+      if (k === "playing") continue;
+      toSave[k] = state[k];
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+  } catch (e) { /* ignore */ }
+}
+
+const state = Object.assign({}, DEFAULTS, loadSettings() || {});
+
+// Joukowski mapping parameters (a = 1).
+const A = 1.0;
+
+function cylinderParams() {
+  const mu = state.thick * 0.9;
+  const nu = Math.tan(state.camber * Math.PI / 180) * 0.2;
+  const R = Math.sqrt((A + mu) * (A + mu) + nu * nu);
+  return { mu, nu, R };
+}
+
+// Complex helpers
+const C = (x, y) => ({ re: x, im: y });
+const cAdd = (a, b) => ({ re: a.re + b.re, im: a.im + b.im });
+const cSub = (a, b) => ({ re: a.re - b.re, im: a.im - b.im });
+const cMul = (a, b) => ({ re: a.re*b.re - a.im*b.im, im: a.re*b.im + a.im*b.re });
+const cDiv = (a, b) => {
+  const d = b.re*b.re + b.im*b.im;
+  return { re: (a.re*b.re + a.im*b.im)/d, im: (a.im*b.re - a.re*b.im)/d };
+};
+const cAbs = (a) => Math.hypot(a.re, a.im);
+const cArg = (a) => Math.atan2(a.im, a.re);
+
+function joukowski(zeta) {
+  const a2 = { re: A*A, im: 0 };
+  return cAdd(zeta, cDiv(a2, zeta));
+}
+
+function invJoukowski(z) {
+  const z2 = cMul(z, z);
+  const disc = cSub(z2, { re: 4*A*A, im: 0 });
+  const r = cAbs(disc);
+  const sq = { re: Math.sqrt(Math.max((r + disc.re)/2, 0)), im: Math.sign(disc.im || 1) * Math.sqrt(Math.max((r - disc.re)/2, 0)) };
+  let zeta = cDiv(cAdd(z, sq), { re: 2, im: 0 });
+  if (cAbs(zeta) < A) {
+    zeta = cDiv(cSub(z, sq), { re: 2, im: 0 });
+  }
+  return zeta;
+}
+
+// ============================================================
+// Flow field in ζ-plane: uniform + doublet + vortex
+// ============================================================
+function zetaVelocity(zeta, Gamma) {
+  const { mu, nu, R } = cylinderParams();
+  const alpha = state.aoa * Math.PI / 180;
+  const U = state.uinf;
+  const cen = { re: -mu, im: nu };
+  const rel = cSub(zeta, cen);
+  const r2 = rel.re*rel.re + rel.im*rel.im;
+  const R2 = R * R;
+  const Ue = { re: U*Math.cos(alpha), im: -U*Math.sin(alpha) };
+  const Uei = { re: U*Math.cos(alpha), im: U*Math.sin(alpha) };
+  const rel2 = cMul(rel, rel);
+  const term2 = cMul(Uei, cDiv({ re: -R2, im: 0 }, rel2));
+  const term3 = cDiv({ re: 0, im: Gamma/(2*Math.PI) }, rel);
+  return cAdd(cAdd(Ue, term2), term3);
+}
+
+function zVelocity(z, Gamma) {
+  const zeta = invJoukowski(z);
+  const vZeta = zetaVelocity(zeta, Gamma);
+  const dzdzeta = cSub({ re: 1, im: 0 }, cDiv({ re: A*A, im: 0 }, cMul(zeta, zeta)));
+  return cDiv(vZeta, dzdzeta);
+}
+
+function circulation() {
+  const { mu, nu } = cylinderParams();
+  const alpha = state.aoa * Math.PI / 180;
+  const beta = Math.atan2(nu, A + mu);
+  return -4 * Math.PI * A * state.uinf * Math.sin(alpha + beta);
+}
+
+function liftCoeff() {
+  const Gamma = circulation();
+  return -2 * Gamma / (state.uinf * 4 * A);
+}
+
+// ============================================================
+// Airfoil geometry & surface Cp
+// ============================================================
+function airfoilPoints(n = 200) {
+  const { mu, nu, R } = cylinderParams();
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    const t = (i / n) * 2 * Math.PI;
+    const zeta = { re: -mu + R*Math.cos(t), im: nu + R*Math.sin(t) };
+    pts.push(joukowski(zeta));
+  }
+  return pts;
+}
+
+function surfaceCp(n = 200) {
+  const Gamma = circulation();
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const t = (i / n) * 2 * Math.PI;
+    const { mu, nu, R } = cylinderParams();
+    const zeta = { re: -mu + R*Math.cos(t), im: nu + R*Math.sin(t) };
+    const z = joukowski(zeta);
+    const vZ = zVelocity(z, Gamma);
+    const speed = cAbs(vZ);
+    const cp = 1 - (speed / state.uinf) * (speed / state.uinf);
+    out.push({ z, cp, t });
+  }
+  return out;
+}
+
+function stagnationPoints() {
+  const { mu, nu, R } = cylinderParams();
+  const Gamma = circulation();
+  const alpha = state.aoa * Math.PI / 180;
+  const beta = Math.atan2(nu, A + mu);
+  const arg = Gamma / (4 * Math.PI * R * state.uinf);
+  const c = Math.acos(Math.max(-1, Math.min(1, arg)));
+  const ts = [alpha + beta + Math.PI - c, alpha + beta + Math.PI + c];
+  return ts.map(t => {
+    const zeta = { re: -mu + R*Math.cos(t), im: nu + R*Math.sin(t) };
+    return joukowski(zeta);
+  });
+}
+
+// ============================================================
+// Geometry cache — rebuilt only on parameter change, not every frame.
+// Previously airfoilPoints/surfaceCp/stagnationPoints were recomputed 60×/sec.
+// ============================================================
+let geoCache = { airfoil: [], cp: [], stag: [], Gamma: 0, cl: 0 };
+function rebuildGeometry() {
+  geoCache.airfoil = airfoilPoints(240);
+  geoCache.cp = surfaceCp(120);
+  geoCache.stag = stagnationPoints();
+  geoCache.Gamma = circulation();
+  geoCache.cl = liftCoeff();
+}
+
+// ============================================================
+// WebGL pressure-field renderer
+// The fragment shader evaluates the full Joukowski potential flow per pixel:
+//   screen -> world (display) -> math frame (rotate by +alpha)
+//   -> inverse Joukowski -> cylinder-relative -> complex velocity
+//   -> chain rule to z-plane -> Cp = 1 - (V/Uinf)^2 -> color.
+// ============================================================
+const glCanvas = document.getElementById("gl");
+const gl = glCanvas.getContext("webgl", { premultipliedAlpha: false, alpha: true, antialias: false })
+        || glCanvas.getContext("experimental-webgl", { premultipliedAlpha: false, alpha: true, antialias: false });
+let glProgram = null, glQuadBuf = null, glLocs = {};
+let glOk = !!gl;
+
+const VS_SRC = `
+attribute vec2 aPos;
+void main() { gl_Position = vec4(aPos, 0.0, 1.0); }
+`;
+
+const FS_SRC = `
+precision highp float;
+uniform vec2  uResolution;   // drawing buffer size (physical px)
+uniform vec2  uView;         // view.cx, view.cy in physical px
+uniform float uScale;        // px per world unit (physical px)
+uniform float uAoa;          // angle of attack (radians)
+uniform float uUinf;         // freestream speed
+uniform float uMu;           // cylinder horizontal offset
+uniform float uNu;           // cylinder vertical offset
+uniform float uR;            // cylinder radius
+uniform float uGamma;        // circulation
+
+const float PI = 3.141592653589793;
+
+vec2 cmul(vec2 a, vec2 b) { return vec2(a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x); }
+vec2 cdiv(vec2 a, vec2 b) {
+  float d = dot(b, b);
+  return vec2(dot(a, b), a.y*b.x - a.x*b.y) / d;
+}
+vec2 csqrt(vec2 z) {
+  float r = length(z);
+  float sy = (z.y < 0.0) ? -1.0 : 1.0;
+  return vec2(sqrt(max((r + z.x) * 0.5, 0.0)),
+              sy * sqrt(max((r - z.x) * 0.5, 0.0)));
+}
+vec2 invJoukowski(vec2 z) {
+  vec2 disc = cmul(z, z) - vec2(4.0, 0.0);
+  vec2 sq = csqrt(disc);
+  vec2 zeta = (z + sq) * 0.5;
+  if (length(zeta) < 1.0) zeta = (z - sq) * 0.5;
+  return zeta;
+}
+vec2 crot(vec2 z, float ang) {
+  float c = cos(ang), s = sin(ang);
+  return vec2(z.x*c - z.y*s, z.x*s + z.y*c);
+}
+vec3 cpColor(float cp) {
+  float t = clamp((cp + 4.0) / 5.0, 0.0, 1.0);
+  vec3 c0 = vec3(43.0, 108.0, 176.0) / 255.0;
+  vec3 c1 = vec3(73.0, 169.0, 201.0) / 255.0;
+  vec3 c2 = vec3(235.0, 220.0, 100.0) / 255.0;
+  vec3 c3 = vec3(197.0, 48.0, 48.0) / 255.0;
+  float seg = t * 3.0;
+  if (seg < 1.0) return mix(c0, c1, seg);
+  if (seg < 2.0) return mix(c1, c2, seg - 1.0);
+  return mix(c2, c3, seg - 2.0);
+}
+
+void main() {
+  // gl_FragCoord origin is bottom-left; flip to top-left to match the 2D overlay.
+  vec2 pix = vec2(gl_FragCoord.x, uResolution.y - gl_FragCoord.y);
+  // screen (physical px) -> world (display frame, freestream horizontal)
+  vec2 zDisp;
+  zDisp.x = (pix.x - uView.x) / uScale;
+  zDisp.y = -(pix.y - uView.y) / uScale;
+  // display -> math frame (airfoil horizontal): rotate by +alpha
+  vec2 z = crot(zDisp, uAoa);
+
+  vec2 zeta = invJoukowski(z);
+  vec2 cen = vec2(-uMu, uNu);
+  vec2 rel = zeta - cen;
+  float r2 = dot(rel, rel);
+  float R2 = uR * uR;
+  bool inside = r2 < R2;
+
+  float cp = 0.0;
+  if (!inside) {
+    float alpha = uAoa;
+    float ca = cos(alpha), sa = sin(alpha);
+    vec2 Ue  = vec2(uUinf*ca, -uUinf*sa);
+    vec2 Uei = vec2(uUinf*ca,  uUinf*sa);
+    vec2 rel2 = cmul(rel, rel);
+    vec2 term2 = cmul(Uei, cdiv(vec2(-R2, 0.0), rel2));
+    vec2 term3 = cdiv(vec2(0.0, uGamma / (2.0*PI)), rel);
+    vec2 vZeta = Ue + term2 + term3;
+    vec2 dzdzeta = vec2(1.0, 0.0) - cdiv(vec2(1.0, 0.0), cmul(zeta, zeta));
+    vec2 vZ = cdiv(vZeta, dzdzeta);
+    float sp = length(vZ);
+    cp = 1.0 - (sp / uUinf) * (sp / uUinf);
+  }
+
+  vec3 col = cpColor(cp);
+  float a = inside ? 0.0 : (170.0 / 255.0);
+  gl_FragColor = vec4(col, a);
+}
+`;
+
+function compileShader(type, src) {
+  const sh = gl.createShader(type);
+  gl.shaderSource(sh, src);
+  gl.compileShader(sh);
+  if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+    console.error("Shader compile error:", gl.getShaderInfoLog(sh));
+    gl.deleteShader(sh);
+    return null;
+  }
+  return sh;
+}
+
+function initGL() {
+  if (!gl) { console.warn("WebGL not available — pressure field disabled."); return; }
+  const vs = compileShader(gl.VERTEX_SHADER, VS_SRC);
+  const fs = compileShader(gl.FRAGMENT_SHADER, FS_SRC);
+  glProgram = gl.createProgram();
+  gl.attachShader(glProgram, vs);
+  gl.attachShader(glProgram, fs);
+  gl.linkProgram(glProgram);
+  if (!gl.getProgramParameter(glProgram, gl.LINK_STATUS)) {
+    console.error("Program link error:", gl.getProgramInfoLog(glProgram));
+    glProgram = null;
+    return;
+  }
+  glQuadBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, glQuadBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const L = (n) => gl.getAttribLocation(glProgram, n);
+  const U = (n) => gl.getUniformLocation(glProgram, n);
+  glLocs.aPos        = L("aPos");
+  glLocs.uResolution = U("uResolution");
+  glLocs.uView       = U("uView");
+  glLocs.uScale      = U("uScale");
+  glLocs.uAoa        = U("uAoa");
+  glLocs.uUinf       = U("uUinf");
+  glLocs.uMu         = U("uMu");
+  glLocs.uNu         = U("uNu");
+  glLocs.uR          = U("uR");
+  glLocs.uGamma      = U("uGamma");
+}
+
+function renderPressureGL(Gamma) {
+  if (!gl || !glProgram) return;
+  gl.viewport(0, 0, glCanvas.width, glCanvas.height);
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  if (!state.showPressure) return; // leave the GL canvas transparent
+  const { mu, nu, R } = cylinderParams();
+  gl.useProgram(glProgram);
+  gl.bindBuffer(gl.ARRAY_BUFFER, glQuadBuf);
+  gl.enableVertexAttribArray(glLocs.aPos);
+  gl.vertexAttribPointer(glLocs.aPos, 2, gl.FLOAT, false, 0, 0);
+  gl.uniform2f(glLocs.uResolution, glCanvas.width, glCanvas.height);
+  gl.uniform2f(glLocs.uView, view.cx * dpr, view.cy * dpr);
+  gl.uniform1f(glLocs.uScale, view.scale * dpr);
+  gl.uniform1f(glLocs.uAoa, state.aoa * Math.PI / 180);
+  gl.uniform1f(glLocs.uUinf, state.uinf);
+  gl.uniform1f(glLocs.uMu, mu);
+  gl.uniform1f(glLocs.uNu, nu);
+  gl.uniform1f(glLocs.uR, R);
+  gl.uniform1f(glLocs.uGamma, Gamma);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+
+// ============================================================
+// 2D overlay (vector graphics)
+// ============================================================
+const canvas = document.getElementById("overlay");
+const ctx = canvas.getContext("2d");
+let W = 0, H = 0, dpr = 1;
+let view = { cx: 0, cy: 0, scale: 80 };
+
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  W = canvas.clientWidth; H = canvas.clientHeight;
+  glCanvas.width = Math.max(1, Math.floor(W * dpr));
+  glCanvas.height = Math.max(1, Math.floor(H * dpr));
+  canvas.width = Math.max(1, Math.floor(W * dpr));
+  canvas.height = Math.max(1, Math.floor(H * dpr));
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const span = 10;
+  view.scale = Math.min(W, H) / span;
+  view.cx = W * 0.42;
+  view.cy = H * 0.5;
+}
+window.addEventListener("resize", resize);
+
+// ============================================================
+// Mouse interaction: wheel zoom (toward cursor), drag pan.
+// Cp plot and readout panel have their own drag handlers.
+// ============================================================
+const stage = document.querySelector(".stage");
+
+// --- Readout panel drag (HTML element) ---
+const readoutEl = document.getElementById("readout");
+const readoutHandle = document.getElementById("readout-handle");
+let readoutDrag = null;
+function applyPanelPos() {
+  if (state.panelPos) {
+    readoutEl.style.left = state.panelPos.x + "px";
+    readoutEl.style.top = state.panelPos.y + "px";
+  }
+}
+readoutHandle.addEventListener("mousedown", (e) => {
+  e.stopPropagation();
+  const rect = readoutEl.getBoundingClientRect();
+  const stageRect = stage.getBoundingClientRect();
+  readoutDrag = {
+    offX: e.clientX - rect.left,
+    offY: e.clientY - rect.top,
+    stageRect,
+  };
+  readoutEl.classList.add("dragging");
+});
+window.addEventListener("mousemove", (e) => {
+  if (!readoutDrag) return;
+  const sr = readoutDrag.stageRect;
+  let x = e.clientX - sr.left - readoutDrag.offX;
+  let y = e.clientY - sr.top - readoutDrag.offY;
+  x = Math.max(0, Math.min(sr.width - readoutEl.offsetWidth, x));
+  y = Math.max(0, Math.min(sr.height - readoutEl.offsetHeight, y));
+  state.panelPos = { x, y };
+  readoutEl.style.left = x + "px";
+  readoutEl.style.top = y + "px";
+});
+window.addEventListener("mouseup", () => {
+  if (readoutDrag) {
+    readoutDrag = null;
+    readoutEl.classList.remove("dragging");
+    saveSettings();
+  }
+});
+
+// --- Cp plot drag (canvas-drawn, hit-tested via cpPlotRect) ---
+let cpPlotRect = null;
+let cpDragging = false;
+let cpDrag = null;
+stage.addEventListener("mousedown", (e) => {
+  if (!cpPlotRect || !state.showCp) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const { x0, y0, w, h } = cpPlotRect;
+  if (mx >= x0 && mx <= x0 + w && my >= y0 && my <= y0 + h) {
+    cpDragging = true;
+    cpDrag = { offX: mx - x0, offY: my - y0, stageW: W, stageH: H, w, h };
+    e.stopPropagation();
+  }
+});
+window.addEventListener("mousemove", (e) => {
+  if (!cpDragging) return;
+  const rect = canvas.getBoundingClientRect();
+  let x = e.clientX - rect.left - cpDrag.offX;
+  let y = e.clientY - rect.top - cpDrag.offY;
+  x = Math.max(0, Math.min(cpDrag.stageW - cpDrag.w, x));
+  y = Math.max(0, Math.min(cpDrag.stageH - cpDrag.h, y));
+  state.cpPos = { x, y };
+});
+window.addEventListener("mouseup", () => {
+  if (cpDragging) {
+    cpDragging = false;
+    saveSettings();
+  }
+});
+
+stage.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const before = s2w({ x: mx, y: my });
+  const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+  view.scale = Math.max(20, Math.min(400, view.scale * factor));
+  // keep the world point under the cursor fixed
+  view.cx = mx - before.re * view.scale;
+  view.cy = my + before.im * view.scale;
+  scheduleRebuild();
+}, { passive: false });
+
+let dragging = false, dragLast = null;
+stage.addEventListener("mousedown", (e) => {
+  if (cpDragging) return; // Cp plot grabbed this event already
+  dragging = true; dragLast = { x: e.clientX, y: e.clientY };
+  stage.style.cursor = "grabbing";
+});
+window.addEventListener("mousemove", (e) => {
+  if (!dragging) return;
+  view.cx += e.clientX - dragLast.x;
+  view.cy += e.clientY - dragLast.y;
+  dragLast = { x: e.clientX, y: e.clientY };
+  scheduleRebuild();
+});
+window.addEventListener("mouseup", () => {
+  if (dragging) { dragging = false; stage.style.cursor = "grab"; }
+});
+stage.style.cursor = "grab";
+
+// Touch support: one-finger pan, pinch zoom
+let touchState = null;
+stage.addEventListener("touchstart", (e) => {
+  if (e.touches.length === 1) {
+    touchState = { mode: "pan", x: e.touches[0].clientX, y: e.touches[0].clientY };
+  } else if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    touchState = { mode: "pinch", dist: Math.hypot(dx, dy), scale: view.scale };
+  }
+}, { passive: true });
+stage.addEventListener("touchmove", (e) => {
+  if (!touchState) return;
+  e.preventDefault();
+  if (touchState.mode === "pan" && e.touches.length === 1) {
+    view.cx += e.touches[0].clientX - touchState.x;
+    view.cy += e.touches[0].clientY - touchState.y;
+    touchState.x = e.touches[0].clientX;
+    touchState.y = e.touches[0].clientY;
+    scheduleRebuild();
+  } else if (touchState.mode === "pinch" && e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.hypot(dx, dy);
+    view.scale = Math.max(20, Math.min(400, touchState.scale * (dist / touchState.dist)));
+    scheduleRebuild();
+  }
+}, { passive: false });
+stage.addEventListener("touchend", () => { touchState = null; });
+
+// ============================================================
+// Keyboard: ←/→ adjust AoA, Space toggles play, R resets view.
+// ============================================================
+window.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+  const aoaEl = document.getElementById("aoa");
+  if (e.key === "ArrowLeft") {
+    state.aoa = Math.max(-10, state.aoa - 0.5); aoaEl.value = state.aoa; scheduleRebuild();
+  } else if (e.key === "ArrowRight") {
+    state.aoa = Math.min(20, state.aoa + 0.5); aoaEl.value = state.aoa; scheduleRebuild();
+  } else if (e.key === " ") {
+    e.preventDefault(); document.getElementById("btn-play").click();
+  } else if (e.key === "r" || e.key === "R") {
+    const span = 10;
+    view.scale = Math.min(W, H) / span;
+    view.cx = W * 0.42; view.cy = H * 0.5;
+    scheduleRebuild();
+  }
+});
+
+function w2s(z) { return { x: view.cx + z.re * view.scale, y: view.cy - z.im * view.scale }; }
+function s2w(p) { return { re: (p.x - view.cx) / view.scale, im: -(p.y - view.cy) / view.scale }; }
+
+function rot(z, ang) {
+  const c = Math.cos(ang), s = Math.sin(ang);
+  return { re: z.re * c - z.im * s, im: z.re * s + z.im * c };
+}
+function mathToWorld(zm) { return rot(zm, -state.aoa * Math.PI / 180); }
+function worldToMath(zw) { return rot(zw,  state.aoa * Math.PI / 180); }
+
+// ============================================================
+// Streamlines (CPU integration; drawn on overlay)
+// ============================================================
+let streamlines = [];
+const STREAMLINE_SEEDS = 26;
+const STREAMLINE_STEPS = 400;
+const STREAMLINE_DS = 0.08;
+let streamDashOffset = 0;
+
+function isInsideBody(z) {
+  const zeta = invJoukowski(z);
+  const { mu, nu, R } = cylinderParams();
+  const dx = zeta.re + mu, dy = zeta.im - nu;
+  return (dx*dx + dy*dy) < R*R * 1.01;
+}
+
+function integrateStreamline(start, Gamma) {
+  const pts = [start];
+  let z = { re: start.re, im: start.im };
+  let enteredView = false;
+  for (let s = 0; s < STREAMLINE_STEPS; s++) {
+    const zMath = worldToMath(z);
+    if (isInsideBody(zMath)) break;
+    const vMath = zVelocity(zMath, Gamma);
+    const v = rot(vMath, -state.aoa * Math.PI / 180);
+    const sp = cAbs(v);
+    if (sp < 1e-4) break;
+    const ux = v.re / sp, uy = v.im / sp;
+    z = { re: z.re + ux * STREAMLINE_DS, im: z.im + uy * STREAMLINE_DS };
+    const s2 = w2s(z);
+    const onScreen = s2.x >= -40 && s2.x <= W + 40 && s2.y >= -40 && s2.y <= H + 40;
+    if (onScreen) enteredView = true;
+    if (enteredView && !onScreen) { pts.push(z); break; }
+    pts.push(z);
+  }
+  return pts;
+}
+
+function rebuildStreamlines(Gamma) {
+  streamlines = [];
+  const spacingWorld = state.spacing / view.scale;
+  const yMax = H / (2 * view.scale);
+  const yMin = -yMax;
+  const n = Math.floor((yMax - yMin) / spacingWorld);
+  for (let i = 0; i < n; i++) {
+    const y = yMin + (i + 0.5) * spacingWorld;
+    const start = { re: -W / (2 * view.scale), im: y };
+    streamlines.push(integrateStreamline(start, Gamma));
+  }
+  if (typeof window !== "undefined") window.__streamlines = streamlines;
+}
+function drawStreamlines() {
+  if (!state.showStream) return;
+  const d = state.dash;
+  ctx.save();
+  ctx.strokeStyle = "#4cc9f0";
+  ctx.lineWidth = 1.1;
+  ctx.globalAlpha = 0.6;
+  ctx.setLineDash([d, d]);
+  ctx.lineDashOffset = -streamDashOffset;
+  for (const line of streamlines) {
+    if (line.length < 2) continue;
+    ctx.beginPath();
+    const p0 = w2s(line[0]);
+    ctx.moveTo(p0.x, p0.y);
+    for (let k = 1; k < line.length; k++) {
+      const p = w2s(line[k]);
+      ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+// ============================================================
+// Particles
+// ============================================================
+const particles = [];
+const N_PARTICLES = 180;
+function seedParticles() {
+  particles.length = 0;
+  for (let i = 0; i < N_PARTICLES; i++) {
+    particles.push({
+      line: 0,
+      progress: Math.random(),
+      speed: 0.08 + Math.random() * 0.08,
+    });
+  }
+}
+
+function stepParticles(Gamma, dt) {
+  if (!state.animate || !state.playing) return;
+  for (const p of particles) {
+    p.progress += p.speed * dt;
+    if (p.progress > 1) {
+      p.line = Math.floor(Math.random() * Math.max(1, streamlines.length));
+      p.progress = 0;
+      p.speed = 0.25 + Math.random() * 0.35;
+    }
+  }
+}
+
+function drawParticles() {
+  if (!state.showStream) return;
+  ctx.save();
+  ctx.fillStyle = "#9be7ff";
+  for (const p of particles) {
+    const line = streamlines[p.line];
+    if (!line || line.length < 2) continue;
+    const totalSegs = line.length - 1;
+    const segF = p.progress * totalSegs;
+    const seg = Math.min(totalSegs - 1, Math.floor(segF));
+    const f = segF - seg;
+    const a = line[seg], b = line[seg + 1];
+    const z = { re: a.re + (b.re - a.re) * f, im: a.im + (b.im - a.im) * f };
+    const s = w2s(z);
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, 1.8, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawAirfoil() {
+  const pts = geoCache.airfoil;
+  ctx.save();
+  ctx.beginPath();
+  pts.forEach((p, i) => {
+    const s = w2s(mathToWorld(p));
+    if (i === 0) ctx.moveTo(s.x, s.y); else ctx.lineTo(s.x, s.y);
+  });
+  ctx.closePath();
+  if (state.showPressure) {
+    ctx.fillStyle = "#0a0f15";
+  } else {
+    ctx.fillStyle = "#1a2028";
+  }
+  ctx.fill();
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = "#e6edf3";
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawStagnation() {
+  const pts = geoCache.stag;
+  ctx.save();
+  ctx.fillStyle = "#fbbf24";
+  for (const p of pts) {
+    const s = w2s(mathToWorld(p));
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, 4, 0, 2*Math.PI);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawLiftVector() {
+  const cl = geoCache.cl;
+  const start = w2s(mathToWorld({ re: 0, im: 0 }));
+  const len = cl * 80;
+  const end = { x: start.x, y: start.y - len };
+  const dir = len >= 0 ? -1 : 1;
+  ctx.save();
+  // Bright white stands out against the warm pressure-field colors
+  ctx.strokeStyle = "#ffffff";
+  ctx.fillStyle = "#ffffff";
+  ctx.lineWidth = 3;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(start.x, start.y);
+  ctx.lineTo(end.x, end.y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(end.x, end.y);
+  ctx.lineTo(end.x - 7, end.y - 10 * dir);
+  ctx.lineTo(end.x + 7, end.y - 10 * dir);
+  ctx.closePath();
+  ctx.fill();
+  ctx.font = "bold 12px sans-serif";
+  ctx.textBaseline = "middle";
+  ctx.fillText(`L' (Cl=${cl.toFixed(2)})`, end.x + 10, end.y);
+  ctx.restore();
+}
+
+function drawFreestream() {
+  const x0 = 24, y0 = 40, len = 60;
+  ctx.save();
+  ctx.strokeStyle = "#8b9aa9";
+  ctx.fillStyle = "#8b9aa9";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x0, y0); ctx.lineTo(x0 + len, y0);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x0 + len, y0);
+  ctx.lineTo(x0 + len - 8, y0 - 5);
+  ctx.lineTo(x0 + len - 8, y0 + 5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.font = "12px sans-serif";
+  ctx.fillText(`U∞ = ${state.uinf.toFixed(2)}`, x0, y0 - 10);
+  ctx.restore();
+}
+
+function drawCpPlot() {
+  if (!state.showCp) return;
+  const w = 240, h = 130;
+  let x0, y0;
+  if (state.cpPos) { x0 = state.cpPos.x; y0 = state.cpPos.y; }
+  else { x0 = W - w - 16; y0 = H - h - 16; }
+  // clamp inside stage
+  x0 = Math.max(0, Math.min(W - w, x0));
+  y0 = Math.max(0, Math.min(H - h, y0));
+  cpPlotRect = { x0, y0, w, h }; // store for hit-testing
+  ctx.save();
+  // drag handle bar at top of Cp plot
+  ctx.fillStyle = cpDragging ? "#2d3748" : "#1a2028";
+  ctx.fillRect(x0, y0, w, 18);
+  ctx.fillStyle = "#8b9aa9";
+  ctx.font = "10px sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText("⠿ Cp plot — drag", x0 + 6, y0 + 12);
+  ctx.fillStyle = "rgba(15,20,25,0.85)";
+  ctx.strokeStyle = "#2d3748";
+  ctx.lineWidth = 1;
+  ctx.fillRect(x0, y0 + 18, w, h - 18);
+  ctx.strokeRect(x0, y0, w, h);
+  const padL = 28, padR = 10, padT = 26, padB = 18;
+  const px = (xc) => x0 + padL + (xc + 2) / 4 * (w - padL - padR);
+  const py = (cp) => y0 + padT + (1 - cp) / 5 * (h - padT - padB);
+  ctx.fillStyle = "#8b9aa9";
+  ctx.font = "10px sans-serif";
+  ctx.fillText("Cp", x0 + 4, y0 + 30);
+  ctx.fillText("x/c", x0 + w - 16, y0 + h - 4);
+  // grid + ticks (Cp on y, x/c on x)
+  ctx.strokeStyle = "#2d3748";
+  ctx.fillStyle = "#8b9aa9";
+  ctx.textAlign = "right";
+  for (const cpv of [1, 0, -1, -2, -3]) {
+    ctx.beginPath();
+    ctx.moveTo(x0 + padL, py(cpv)); ctx.lineTo(x0 + w - padR, py(cpv));
+    ctx.stroke();
+    ctx.fillText(String(cpv), x0 + padL - 3, py(cpv) + 3);
+  }
+  ctx.textAlign = "center";
+  for (const xc of [-1, 0, 1]) {
+    ctx.fillText(xc.toFixed(1), px(xc), y0 + h - 6);
+  }
+  ctx.textAlign = "left";
+  // Cp curve (cached)
+  const cps = geoCache.cp;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  let started = false;
+  for (const p of cps) {
+    const sx = px(p.z.re);
+    const sy = py(Math.max(-4, Math.min(1, p.cp)));
+    if (!started) { ctx.moveTo(sx, sy); started = true; }
+    else ctx.lineTo(sx, sy);
+  }
+  ctx.strokeStyle = "#4cc9f0";
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ============================================================
+// Main draw loop
+// ============================================================
+let lastT = 0;
+let fpsAccum = 0, fpsFrames = 0;
+function frame(t) {
+  if (!lastT) lastT = t;
+  const dt = Math.min(0.05, (t - lastT) / 1000);
+  lastT = t;
+  const Gamma = geoCache.Gamma;
+
+  // GPU pressure field (bottom layer)
+  renderPressureGL(Gamma);
+
+  // 2D overlay (top layer)
+  ctx.clearRect(0, 0, W, H);
+  stepParticles(Gamma, dt);
+  if (state.animate && state.playing) {
+    const cycle = 2 * state.dash;
+    streamDashOffset = (streamDashOffset + dt * 12) % cycle;
+  }
+  drawStreamlines();
+  drawParticles();
+  drawAirfoil();
+  drawStagnation();
+  drawLiftVector();
+  drawFreestream();
+  drawCpPlot();
+
+  // FPS readout (throttled)
+  fpsAccum += dt; fpsFrames++;
+  if (fpsAccum >= 0.5) {
+    const fps = Math.round(fpsFrames / fpsAccum);
+    const el = document.getElementById("r-fps");
+    if (el) el.textContent = String(fps);
+    fpsAccum = 0; fpsFrames = 0;
+  }
+
+  requestAnimationFrame(frame);
+}
+
+// ============================================================
+// Rebuild on parameter change
+// ============================================================
+let rebuildTimer = null;
+function scheduleRebuild() {
+  clearTimeout(rebuildTimer);
+  rebuildTimer = setTimeout(() => {
+    // Pressure field is per-frame on the GPU — nothing to rebuild for it.
+    rebuildGeometry();
+    rebuildStreamlines(geoCache.Gamma);
+    updateReadout();
+    saveSettings();
+  }, 30);
+}
+
+function updateReadout() {
+  const Gamma = circulation();
+  const cl = liftCoeff();
+  document.getElementById("r-aoa").textContent = state.aoa.toFixed(1) + "°";
+  document.getElementById("r-camber").textContent = state.camber.toFixed(1) + "°";
+  document.getElementById("r-thick").textContent = state.thick.toFixed(2);
+  document.getElementById("r-gamma").textContent = Gamma.toFixed(3);
+  document.getElementById("r-cl").textContent = cl.toFixed(3);
+  document.getElementById("r-render").textContent = glOk ? "WebGL" : "2D (fallback)";
+  document.getElementById("v-aoa").textContent = state.aoa.toFixed(1) + "°";
+  document.getElementById("v-camber").textContent = state.camber.toFixed(1) + "°";
+  document.getElementById("v-thick").textContent = state.thick.toFixed(2);
+  document.getElementById("v-uinf").textContent = state.uinf.toFixed(2);
+  document.getElementById("v-dash").textContent = String(state.dash);
+  document.getElementById("v-spacing").textContent = String(state.spacing);
+}
+
+// ============================================================
+// Wire UI
+// ============================================================
+function bindSlider(id, key, parse = parseFloat) {
+  const el = document.getElementById(id);
+  el.value = state[key];
+  el.addEventListener("input", () => {
+    state[key] = parse(el.value);
+    scheduleRebuild();
+  });
+}
+bindSlider("aoa", "aoa");
+bindSlider("camber", "camber");
+bindSlider("thick", "thick");
+bindSlider("uinf", "uinf");
+bindSlider("dash", "dash", parseInt);
+bindSlider("spacing", "spacing", parseInt);
+
+function toggleBtn(id, key) {
+  const el = document.getElementById(id);
+  el.classList.toggle("active", state[key]);
+  el.addEventListener("click", () => {
+    state[key] = !state[key];
+    el.classList.toggle("active", state[key]);
+    saveSettings();
+  });
+}
+toggleBtn("t-stream", "showStream");
+toggleBtn("t-pressure", "showPressure");
+toggleBtn("t-cp", "showCp");
+toggleBtn("t-anim", "animate");
+
+document.getElementById("btn-play").addEventListener("click", (e) => {
+  state.playing = !state.playing;
+  e.target.textContent = state.playing ? "⏸ Pause" : "▶ Play";
+});
+document.getElementById("btn-view").addEventListener("click", () => {
+  const span = 10;
+  view.scale = Math.min(W, H) / span;
+  view.cx = W * 0.42; view.cy = H * 0.5;
+  scheduleRebuild();
+});
+document.getElementById("btn-reset").addEventListener("click", () => {
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  Object.assign(state, DEFAULTS);
+  document.getElementById("aoa").value = DEFAULTS.aoa;
+  document.getElementById("camber").value = DEFAULTS.camber;
+  document.getElementById("thick").value = DEFAULTS.thick;
+  document.getElementById("uinf").value = DEFAULTS.uinf;
+  document.getElementById("dash").value = DEFAULTS.dash;
+  document.getElementById("spacing").value = DEFAULTS.spacing;
+  document.getElementById("t-stream").classList.toggle("active", DEFAULTS.showStream);
+  document.getElementById("t-pressure").classList.toggle("active", DEFAULTS.showPressure);
+  document.getElementById("t-cp").classList.toggle("active", DEFAULTS.showCp);
+  document.getElementById("t-anim").classList.toggle("active", DEFAULTS.animate);
+  document.getElementById("btn-play").textContent = DEFAULTS.playing ? "⏸ Pause" : "▶ Play";
+  state.panelPos = null;
+  state.cpPos = null;
+  readoutEl.style.left = "";
+  readoutEl.style.top = "";
+  scheduleRebuild();
+});
+
+const presets = {
+  flat:    { aoa: 5,  camber: 0,  thick: 0.05, uinf: 0.5 },
+  sym:     { aoa: 5,  camber: 0,  thick: 0.15, uinf: 0.5 },
+  cambered:{ aoa: 2,  camber: 8,  thick: 0.15, uinf: 0.5 },
+  highlift:{ aoa: 12, camber: 10, thick: 0.18, uinf: 0.5 },
+};
+function applyPreset(name) {
+  const p = presets[name] || presets.sym;
+  Object.assign(state, p);
+  document.getElementById("aoa").value = p.aoa;
+  document.getElementById("camber").value = p.camber;
+  document.getElementById("thick").value = p.thick;
+  document.getElementById("uinf").value = p.uinf;
+  scheduleRebuild();
+}
+document.querySelectorAll("[data-preset]").forEach(b => {
+  b.addEventListener("click", () => applyPreset(b.dataset.preset));
+});
+
+// ============================================================
+// KaTeX equations
+// ============================================================
+function renderEq(id, tex) {
+  const el = document.getElementById(id);
+  if (window.katex) {
+    try { katex.render(tex, el, { throwOnError: false }); }
+    catch(e) { el.textContent = tex; }
+  } else {
+    el.textContent = tex;
+  }
+}
+window.addEventListener("load", () => {
+  renderEq("eq-jouk", String.raw`z = \zeta + \dfrac{a^2}{\zeta}`);
+  renderEq("eq-gamma", String.raw`\Gamma = -4\pi a U_\infty \sin(\alpha + \beta)`);
+  renderEq("eq-lift", String.raw`L' = \rho U_\infty \Gamma`);
+  renderEq("eq-cp", String.raw`C_p = 1 - \left(\dfrac{V}{U_\infty}\right)^2`);
+});
+
+// ============================================================
+// Init
+// ============================================================
+function init() {
+  initGL();
+  resize();
+  seedParticles();
+  applyPanelPos();
+  document.getElementById("btn-play").textContent = state.playing ? "⏸ Pause" : "▶ Play";
+  rebuildGeometry();
+  rebuildStreamlines(geoCache.Gamma);
+  updateReadout();
+  requestAnimationFrame(frame);
+}
+init();
+</script>
+</body>
+</html>
